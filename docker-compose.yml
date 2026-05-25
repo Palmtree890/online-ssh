@@ -1,0 +1,27 @@
+services:
+  ssh-client:
+    build: .
+    container_name: online-ssh
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      # Uncomment to mount SSL certs:
+      # - /etc/letsencrypt/live/yourdomain.com:/certs:ro
+    env_file:
+      - .env
+    environment:
+      # These override .env for container-specific values
+      - NODE_ENV=production
+      - PORT=3000
+      # Uncomment for HTTPS:
+      # - SSL_CERT_PATH=/certs/fullchain.pem
+      # - SSL_KEY_PATH=/certs/privkey.pem
+    networks:
+      - ssh-net
+
+networks:
+  ssh-net:
+    driver: bridge

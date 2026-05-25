@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SSH Web Client</title>
+  <link rel="icon" id="favicon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⌨️</text></svg>">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="app-layout">
+
+  <!-- Header -->
+  <header class="header">
+    <button class="btn-icon mobile-sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">☰</button>
+    <div class="header-logo">
+      <span class="logo-icon">⌨️</span>
+      <span>SSH Client</span>
+    </div>
+    <div class="header-spacer"></div>
+    <a href="/logs" class="btn-ghost" style="font-size:12px">📋 Logs</a>
+    <div class="header-user">
+      <span id="headerUsername"></span>
+      <button id="logoutBtn" class="btn-ghost" style="font-size:12px">Sign out</button>
+    </div>
+  </header>
+
+  <!-- Sidebar backdrop (mobile) -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+
+    <!-- Quick Connect -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-header">
+        <span class="sidebar-section-title">Quick Connect</span>
+      </div>
+      <form class="quick-connect-form" id="quickConnectForm">
+        <input id="qcHost" placeholder="hostname or IP" autocomplete="off" required>
+        <div class="quick-connect-row">
+          <input id="qcUser" placeholder="username" autocomplete="off" required>
+          <input id="qcPort" type="number" placeholder="port" value="22" min="1" max="65535">
+        </div>
+        <input id="qcPassword" type="password" placeholder="password" autocomplete="off">
+        <div class="log-toggle-row">
+          <input type="checkbox" id="qcLogging">
+          <label for="qcLogging" style="margin:0; color:var(--text-dim)">Enable logging</label>
+        </div>
+        <button type="submit" class="btn-primary" style="font-size:12px; padding:6px">⚡ Connect</button>
+      </form>
+    </div>
+
+    <!-- Saved Hosts -->
+    <div class="sidebar-section-header" style="padding: 10px 12px 4px">
+      <span class="sidebar-section-title">Saved Hosts</span>
+      <button class="btn-icon" id="addHostBtn" title="Add host" style="font-size:18px">＋</button>
+    </div>
+    <div class="host-list" id="hostList">
+      <div style="color:var(--text-dim); font-size:12px; padding:8px; text-align:center">Loading…</div>
+    </div>
+
+    <!-- Sidebar footer -->
+    <div class="sidebar-footer" style="font-size:11px; color:var(--text-dim)">
+      Ctrl+Shift+T: new tab
+    </div>
+  </aside>
+
+  <!-- Tab bar -->
+  <div class="tab-bar" id="tabBar">
+    <button class="tab-new" id="newTabBtn" title="New tab (Ctrl+Shift+T)">+</button>
+  </div>
+
+  <!-- Terminal area -->
+  <main class="terminal-area" id="terminalArea">
+    <div class="terminal-placeholder" id="terminalPlaceholder">
+      <div style="font-size:48px">⌨️</div>
+      <h2>No active session</h2>
+      <p>Select a saved host or use Quick Connect to open an SSH session.</p>
+      <button class="btn-primary" id="placeholderAddBtn">＋ Add host</button>
+    </div>
+  </main>
+
+</div>
+
+<!-- ===================== HOST MODAL ===================== -->
+<div class="modal-overlay" id="hostModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="hostModalTitle">Add Host</h2>
+      <button class="btn-icon" id="hostModalClose" style="font-size:20px">×</button>
+    </div>
+    <form class="modal-form" id="hostForm">
+      <div>
+        <label for="hNickname">Nickname</label>
+        <input id="hNickname" placeholder="My Server" required>
+      </div>
+      <div class="form-row">
+        <div>
+          <label for="hHostname">Hostname / IP</label>
+          <input id="hHostname" placeholder="192.168.1.10" required>
+        </div>
+        <div>
+          <label for="hPort">Port</label>
+          <input id="hPort" type="number" value="22" min="1" max="65535" required>
+        </div>
+      </div>
+      <div>
+        <label for="hUsername">Username</label>
+        <input id="hUsername" placeholder="pi" required>
+      </div>
+      <div>
+        <label>Auth Method</label>
+        <div class="auth-toggle">
+          <button type="button" class="active" data-method="password">Password</button>
+          <button type="button" data-method="key">SSH Key</button>
+        </div>
+        <input type="hidden" id="hAuthMethod" value="password">
+        <div class="auth-field visible" id="authFieldPassword">
+          <label for="hPassword">Password <span style="color:var(--text-dim)">(leave blank to keep existing)</span></label>
+          <input id="hPassword" type="password" autocomplete="new-password">
+        </div>
+        <div class="auth-field" id="authFieldKey">
+          <label for="hKey">Private Key (PEM format)</label>
+          <textarea id="hKey" rows="5" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" id="hostModalCancel">Cancel</button>
+        <button type="submit" class="btn-primary" id="hostModalSave">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== CONNECT MODAL ===================== -->
+<div class="modal-overlay" id="connectModal">
+  <div class="modal" style="max-width:340px">
+    <div class="modal-header">
+      <h2 id="connectModalTitle">Connect</h2>
+      <button class="btn-icon" id="connectModalClose" style="font-size:20px">×</button>
+    </div>
+    <form class="modal-form" id="connectForm">
+      <!-- Shown only when host uses password auth and password not stored -->
+      <div id="connectPasswordRow" style="display:none">
+        <label for="connectPassword">Password</label>
+        <input id="connectPassword" type="password" autocomplete="off" placeholder="SSH password">
+      </div>
+      <div class="log-toggle-row">
+        <input type="checkbox" id="connectLogging">
+        <label for="connectLogging" style="margin:0; color:var(--text-dim)">Enable session logging</label>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" id="connectModalCancel">Cancel</button>
+        <button type="submit" class="btn-primary">Connect</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== PASTE DIALOG ===================== -->
+<div class="modal-overlay" id="pasteModal">
+  <div class="modal paste-dialog">
+    <div class="modal-header">
+      <h2>Paste multi-line text?</h2>
+      <button class="btn-icon" id="pasteModalClose" style="font-size:20px">×</button>
+    </div>
+    <p class="paste-line-count" id="pasteLineCount"></p>
+    <div class="pre paste-preview" id="pastePreview"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-ghost" id="pasteCancelBtn">Cancel</button>
+      <button type="button" class="btn-primary" id="pasteConfirmBtn">Paste</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== TOAST CONTAINER ===================== -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- xterm.js -->
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.9.0/lib/xterm-addon-web-links.min.js"></script>
+
+<script src="/js/app.js"></script>
+</body>
+</html>

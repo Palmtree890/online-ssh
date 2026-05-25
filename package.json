@@ -1,0 +1,12 @@
+{
+  "name": "online-ssh",
+  "version": "1.0.0",
+  "description": "Self-hosted web SSH client for Raspberry Pi",
+  "private": true,
+  "scripts": {
+    "start": "cd server && node src/index.js",
+    "dev": "cd server && npx nodemon src/index.js",
+    "install:server": "cd server && npm install",
+    "setup": "npm run install:server"
+  }
+}
