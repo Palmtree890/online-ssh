@@ -1,6 +1,6 @@
 # SSH Web Client
 
-![Recommended Hosting: Cloudflare Tunnels](https://img.shields.io/badge/Recommended%20Hosting-Cloudflare%20Tunnels-F38020?style=plastic&logo=cloudflare&logoColor=white)
+![Recommended Hosting: Cloudflare Tunnels](https://img.shields.io/badge/Recommended%20Hosting-Cloudflare%20Tunnels-F38020?style=flat-square&logo=cloudflare&logoColor=white))
 
 A self-hosted, browser-based SSH client built for Raspberry Pi. Access your servers from any device on your network (or remotely via Twingate) through a clean terminal UI.
 
